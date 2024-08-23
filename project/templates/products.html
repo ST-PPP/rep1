@@ -1,0 +1,39 @@
+{% extends 'flatpages/default.html' %} <!--  наследуемся от шаблона default.html, который мы создавали для flatpages -->
+
+{% load custom_tags %} <!-- Подключаем новый файл с нашим тегом -->
+{% load custom_filters %}
+
+{% block title %}
+Products <!-- Название у нас будет products -->
+{% endblock title %}
+<!-- В контенте на странице мы выводим все товары -->
+{% block content %}
+<h1>Все товары</h1>
+    <h3>{% current_time %}</h3> <!-- Используем переданную из представления переменную time_now и применяем к ней фильтр date. По назначению этот фильтр очень похож на метод strftime у объекта datetime в Python — вывод времени в указанном формате. -->
+    <h3>{{ next_sale|default_if_none:"Чуть позже сообщим о распродаже!" }}</h3>
+<hr>
+   <!-- Выводим товары, только если они есть с помощью тега if -->
+   {% if products %}
+        <table> <!-- Начинаем описывать таблицу -->
+                   <tr> <!-- Добавляем строку -->
+                       <td>Название</td> <!-- Добавляем ячейку в строку -->
+                       <td>Описание</td> <!-- Добавляем ещё одну ячейку в строку и так далее -->
+                       <td>Категория</td>
+                       <td>Цена</td>
+                       <td>Количество</td>
+                   </tr> <!-- Не забываем закрыть HTML-тег строки -->
+           {% for product in products %} <!-- Для каждого товара будете генерироваться новая строчка, т.е. новый HTML код, который указан в теле цикла. При этом сам цикл работает точно так же, как и в Python. product — переменная цикла, т.е. наш товар полученный из списка -->
+                <!-- Не забываем, что переменные в шаблоне ничем не отличаются от переменных в Python. Здесь также можно получать доступ к полям объекта модели. Например, здесь мы выводим имя, в следующем столбце описание, и т.д.  -->
+            <tr style="border: 1px solid #afabab;">
+                <td style="border: 1px solid #afabab;">{{ product.name }}</td>
+                <td style="border: 1px solid #afabab;">{{ product.description|truncatechars:15 }}</td>
+                <td style="border: 1px solid #afabab;">{{ product.category.name }}</td>
+                <td style="border: 1px solid #afabab;">{{ product.price|currency:"usd" }}</td>  <!-- Используем наш фильтр -->
+                <td style="border: 1px solid #afabab;">{{ product.quantity }}</td>
+            </td>
+            {% endfor %}
+        </table> <!-- ... и таблицы -->
+   {% else %}
+       <h2>Товаров нет!</h2> <!-- Если товаров нет, говорим, что товаров нет ;) -->
+   {% endif %}
+{% endblock content %}
