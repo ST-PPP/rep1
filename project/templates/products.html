@@ -1,0 +1,99 @@
+{% extends 'flatpages/default.html' %} <!--  наследуемся от шаблона default.html, который мы создавали для flatpages -->
+
+{% load custom_tags %} <!-- Подключаем новый файл с нашим тегом -->
+{% load custom_filters %}
+
+{% block title %}
+Products <!-- Название у нас будет products -->
+{% endblock title %}
+<!-- В контенте на странице мы выводим все товары -->
+{% block content %}
+<h1>Все товары</h1>
+    <h3>{% current_time %}</h3> <!-- Используем переданную из представления переменную time_now и применяем к ней фильтр date. По назначению этот фильтр очень похож на метод strftime у объекта datetime в Python — вывод времени в указанном формате. -->
+    <h3>{{ next_sale|default_if_none:"Чуть позже сообщим о распродаже!" }}</h3>
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<!--Форма поиска по словам-->
+<form action="" method="get" >
+    {{ filterset.form.non_field_errors }}
+
+    {{ filterset.form.name__icontains.errors }}
+    <label for="{{ filterset.form.name__icontains.id_for_label }}">Search</label>
+    <input
+        id="{{ filterset.form.name__icontains.id }}"
+        name="{{ filterset.form.name__icontains.name }}"
+        value="{{ filterset.form.name__icontains.value }}"
+        class="form-control"
+    >
+    <input type="submit" class="mt-3 btn-primary" value="Найти" />
+</form>
+<hr>
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+<form action="" method="get"> <!-- Добавляем форму, которая объединяет набор полей, которые будут отправляться в запросе -->
+   {{ filterset.form.as_p }} <!-- Переменная, которую мы передали через контекст, может сгенерировать нам форму с полями-->
+   <input type="submit" value="Найти" /><!--Добавим кнопку отправки данных формы-->
+</form>
+
+<hr>
+   <!-- Выводим товары, только если они есть с помощью тега if -->
+   {% if products %}
+        <table> <!-- Начинаем описывать таблицу -->
+                   <tr style="border: 1px solid #afabab;" bgcolor="#CAAAC5"> <!-- Добавляем строку -->
+                       <td style="border: 1px solid #afabab;">Название</td> <!-- Добавляем ячейку в строку -->
+                       <td style="border: 1px solid #afabab;">Описание</td> <!-- Добавляем ещё одну ячейку в строку и так далее -->
+                       <td style="border: 1px solid #afabab;">Категория</td>
+                       <td style="border: 1px solid #afabab;">Цена</td>
+                       <td style="border: 1px solid #afabab;">Количество</td>
+                       {% if perms.simpleapp.change_product %} <!--СТ если у пользователя есть разрешение на изменение, то выводим столбец, в противном случае не выводим столбец-->
+                       <td style="border: 1px solid #afabab;">Изменить</td>
+                       {% endif %}
+                       {% if perms.simpleapp.delete_product %}
+                       <td style="border: 1px solid #afabab;">Удалить</td>
+                       {% endif %}
+                   </tr> <!-- Не забываем закрыть HTML-тег строки -->
+           {% for product in products %} <!-- Для каждого товара будете генерироваться новая строчка, т.е. новый HTML код, который указан в теле цикла. При этом сам цикл работает точно так же, как и в Python. product — переменная цикла, т.е. наш товар полученный из списка -->
+                <!-- Не забываем, что переменные в шаблоне ничем не отличаются от переменных в Python. Здесь также можно получать доступ к полям объекта модели. Например, здесь мы выводим имя, в следующем столбце описание, и т.д.  -->
+            <tr style="border: 1px solid #afabab;">
+                <td style="border: 1px solid #afabab;">{{ product.name }}</td>
+                <td style="border: 1px solid #afabab;">{{ product.description|truncatechars:15 }}</td>
+                <td style="border: 1px solid #afabab;">{{ product.category.name }}</td>
+                <td style="border: 1px solid #afabab;">{{ product.price|currency:"usd" }}</td>  <!-- Используем наш фильтр -->
+                <td style="border: 1px solid #afabab;">{{ product.quantity }}</td>
+                {% if perms.simpleapp.change_product %} <!--СТ если есть разрешение на изменение, то выводим ссылку-кнопку изменить-->
+                <td style="border: 1px solid #afabab;" width="80px"><a href="{% url 'product_update' product.id %}"> Изменить </a></td> <!-- width - ширина ячейки-->
+                {% endif %}
+                {% if perms.simpleapp.delete_product %}
+                <td style="border: 1px solid #afabab;" width="80px"><a href="{% url 'product_delete' product.id %}"> Удалить </a></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </table> <!-- ... и таблицы -->
+   {% else %}
+       <h2>Товаров нет!</h2> <!-- Если товаров нет, говорим, что товаров нет ;) -->
+   {% endif %}
+
+<!-- Добавляем пагинацию на страницу-->
+       <!--Информация о предыдущих страницах-->
+       {% if page_obj.has_previous %} <!--2024-08-27 19-59-13.mkv-->
+           <!--Для каждой ссылки пагинации указываем обработку через новый тег-->
+           <a href="?{% url_replace page=1 %}">1</a> <!-- url_replace - 2024-08-27 19-54-35.mkv-->
+           {% if page_obj.previous_page_number != 1 %}
+               ...
+               <a href="?{% url_replace page=page_obj.previous_page_number %}">{{ page_obj.previous_page_number }}</a>
+           {% endif %}
+       {% endif %}
+
+
+       {# Информация о текущей странице #}
+       {{ page_obj.number }}
+
+
+       {# Информация о следующих страницах #}
+       {% if page_obj.has_next %}
+           <a href="?{% url_replace page=page_obj.next_page_number %}">{{ page_obj.next_page_number }}</a>
+           {% if paginator.num_pages != page_obj.next_page_number %}
+               ...
+               <a href="?{% url_replace page=page_obj.paginator.num_pages %}">{{ page_obj.paginator.num_pages }}</a>
+           {% endif %}
+       {% endif %} <!-- Закончили добавлять пагинацию на страницу-->
+
+{% endblock content %}
